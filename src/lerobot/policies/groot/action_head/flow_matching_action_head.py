@@ -364,7 +364,7 @@ class FlowmatchingActionHead(nn.Module):
 
         num_steps = self.num_inference_timesteps
         dt = 1.0 / num_steps
-
+        model_output=None
         # Run denoising steps.
         for t in range(num_steps):
             t_cont = t / float(num_steps)  # e.g. goes 0, 1/N, 2/N, ...
@@ -382,13 +382,13 @@ class FlowmatchingActionHead(nn.Module):
             # Join vision, language, state and action embedding along sequence dimension.
             future_tokens = self.future_tokens.weight.unsqueeze(0).expand(vl_embs.shape[0], -1, -1)
             sa_embs = torch.cat((state_features, future_tokens, action_features), dim=1)
-
             # Run model forward.
-            model_output = self.model(
-                hidden_states=sa_embs,
-                encoder_hidden_states=vl_embs,
-                timestep=timesteps_tensor,
-            )
+            if num_steps%2==0:
+                model_output = self.model(
+                    hidden_states=sa_embs,
+                    encoder_hidden_states=vl_embs,
+                    timestep=timesteps_tensor,
+                )
             pred = self.action_decoder(model_output, embodiment_id)
 
             pred_velocity = pred[:, -self.action_horizon :]
